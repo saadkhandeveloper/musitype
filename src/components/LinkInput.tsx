@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 interface LinkInputProps {
   onVideoIdSubmit: (videoId: string) => void;
@@ -10,6 +11,7 @@ interface LinkInputProps {
 
 const LinkInput: React.FC<LinkInputProps> = ({ onVideoIdSubmit }) => {
   const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const extractYoutubeId = (url: string): string | null => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -24,15 +26,22 @@ const LinkInput: React.FC<LinkInputProps> = ({ onVideoIdSubmit }) => {
       return;
     }
 
+    setIsLoading(true);
+    
     const videoId = extractYoutubeId(inputValue);
     if (!videoId) {
       toast.error('Invalid YouTube URL');
+      setIsLoading(false);
       return;
     }
 
     onVideoIdSubmit(videoId);
     setInputValue('');
-    toast.success('YouTube video loaded!');
+    
+    setTimeout(() => {
+      setIsLoading(false);
+      toast.success('YouTube video loaded!');
+    }, 1000);
   };
 
   return (
@@ -47,8 +56,16 @@ const LinkInput: React.FC<LinkInputProps> = ({ onVideoIdSubmit }) => {
       <Button 
         type="submit" 
         className="bg-musitype-primary text-musitype-darker hover:bg-musitype-primary/90"
+        disabled={isLoading}
       >
-        Load Music
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading...
+          </>
+        ) : (
+          'Load Music'
+        )}
       </Button>
     </form>
   );
