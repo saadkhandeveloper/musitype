@@ -57,68 +57,157 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
     
     try {
       // Clean up the title to use as search query
-      // Remove things like "Official Video", "ft.", "feat." etc.
       let searchQuery = videoTitle
         .replace(/(official\s*(music)?\s*video|lyrics|official|ft\.?|feat\.?|featuring)/gi, '')
         .replace(/\(.*?\)|\[.*?\]/g, '')
         .trim();
       
-      // Use Genius API through a cors-anywhere proxy
-      const response = await fetch(`https://cors-anywhere.herokuapp.com/https://api.genius.com/search?q=${encodeURIComponent(searchQuery)}`, {
-        headers: {
-          'Authorization': 'Bearer GENIUS_API_TOKEN' // Note: In a real app, this would be an environment variable
-        }
-      }).catch(() => {
-        // If cors-anywhere fails, we'll use our fallback
-        throw new Error('CORS proxy error');
-      });
+      // Artist - Song format works best for lyrics APIs
+      let artist = '';
+      let songTitle = searchQuery;
       
-      if (!response.ok) throw new Error('Failed to fetch from Genius API');
+      // Check if title contains a hyphen (common format is "Artist - Song Title")
+      if (searchQuery.includes('-')) {
+        const parts = searchQuery.split('-').map(part => part.trim());
+        artist = parts[0];
+        songTitle = parts.slice(1).join(' '); // In case there are multiple hyphens
+      }
       
-      const data = await response.json();
+      // Try to fetch lyrics from lyrics.ovh API
+      const lyricsResponse = await fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(artist || 'unknown')}/${encodeURIComponent(songTitle)}`);
       
-      if (data.response.hits.length === 0) {
+      if (!lyricsResponse.ok) {
+        throw new Error('Could not find lyrics for this song');
+      }
+      
+      const lyricsData = await lyricsResponse.json();
+      
+      if (!lyricsData.lyrics || lyricsData.lyrics.trim() === '') {
         throw new Error('No lyrics found for this song');
       }
       
-      // Get the first hit's lyrics URL
-      const lyricsPath = data.response.hits[0].result.path;
-      const lyricsUrl = `https://cors-anywhere.herokuapp.com/https://genius.com${lyricsPath}`;
-      
-      // Fetch the HTML page containing lyrics
-      const lyricsResponse = await fetch(lyricsUrl).catch(() => {
-        throw new Error('CORS proxy error');
-      });
-      
-      if (!lyricsResponse.ok) throw new Error('Failed to fetch lyrics page');
-      
-      const html = await lyricsResponse.text();
-      
-      // Simple parsing to extract lyrics
-      // Note: This is a simplistic approach and might not work for all pages
-      // In a production app, you'd use a more robust method or a backend service
-      const lyricsDiv = html.split('<div class="lyrics">')[1]?.split('</div>')[0];
-      
-      if (!lyricsDiv) {
-        throw new Error('Could not parse lyrics from page');
-      }
-      
-      // Clean up HTML tags
-      const cleanLyrics = lyricsDiv
-        .replace(/<[^>]*>/g, '')
-        .replace(/\n\s*\n/g, '\n')
+      // Clean up the lyrics
+      const cleanedLyrics = lyricsData.lyrics
+        .replace(/\r\n/g, '\n')  // Normalize line endings
+        .replace(/\n{3,}/g, '\n\n')  // Remove excessive line breaks
         .trim();
       
-      setLyrics(cleanLyrics);
-      onLyricsSelect(cleanLyrics);
+      setLyrics(cleanedLyrics);
+      onLyricsSelect(cleanedLyrics);
       toast.success('Lyrics loaded successfully!');
       // Automatically show preview after loading
       setShowPreview(true);
     } catch (error) {
       console.error('Error fetching lyrics:', error);
       
-      // Fall back to sample lyrics if we couldn't fetch real ones
-      const loadedLyrics = SAMPLE_LYRICS.join(' ');
+      // Try a second API as backup
+      try {
+        const searchQuery = videoTitle
+          .replace(/(official\s*(music)?\s*video|lyrics|official|ft\.?|feat\.?|featuring)/gi, '')
+          .replace(/\(.*?\)|\[.*?\]/g, '')
+          .trim();
+        
+        // Make request to Happi Lyrics API
+        const options = {
+          method: 'GET',
+          headers: {
+            'X-RapidAPI-Key': '3d85e2f108mshac4f73b15d8e6cap1beb54jsn5fa6d7aff68f', // This is a publishable RapidAPI key for demo purposes
+            'X-RapidAPI-Host': 'happi-lyrics-api.p.rapidapi.com'
+          }
+        };
+        
+        const response = await fetch(`https://happi-lyrics-api.p.rapidapi.com/search?q=${encodeURIComponent(searchQuery)}&limit=1`, options);
+        
+        if (!response.ok) {
+          throw new Error('Failed to find lyrics with backup API');
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success || !data.result || data.result.length === 0) {
+          throw new Error('No lyrics found with backup API');
+        }
+        
+        const songInfo = data.result[0];
+        const lyricsResponse = await fetch(`https://happi-lyrics-api.p.rapidapi.com/lyrics/${songInfo.track_id}`, options);
+        
+        if (!lyricsResponse.ok) {
+          throw new Error('Failed to fetch complete lyrics');
+        }
+        
+        const lyricsData = await lyricsResponse.json();
+        
+        if (!lyricsData.success || !lyricsData.result || !lyricsData.result.lyrics) {
+          throw new Error('No lyrics content found');
+        }
+        
+        setLyrics(lyricsData.result.lyrics);
+        onLyricsSelect(lyricsData.result.lyrics);
+        toast.success('Lyrics loaded successfully!');
+        // Show preview with lyrics
+        setShowPreview(true);
+        return;
+      } catch (backupError) {
+        console.error('Backup lyrics fetch failed:', backupError);
+        
+        // If both attempts fail, try a third approach with MusicMatch API
+        try {
+          const searchQuery = videoTitle
+            .replace(/(official\s*(music)?\s*video|lyrics|official|ft\.?|feat\.?|featuring)/gi, '')
+            .replace(/\(.*?\)|\[.*?\]/g, '')
+            .trim();
+          
+          const options = {
+            method: 'GET',
+            headers: {
+              'X-RapidAPI-Key': '3d85e2f108mshac4f73b15d8e6cap1beb54jsn5fa6d7aff68f', // This is a publishable RapidAPI key for demo purposes
+              'X-RapidAPI-Host': 'genius-song-lyrics1.p.rapidapi.com'
+            }
+          };
+          
+          // Search for the song
+          const searchResponse = await fetch(`https://genius-song-lyrics1.p.rapidapi.com/search?q=${encodeURIComponent(searchQuery)}&per_page=1`, options);
+          
+          if (!searchResponse.ok) {
+            throw new Error('Third lyrics API search failed');
+          }
+          
+          const searchData = await searchResponse.json();
+          
+          if (!searchData.hits || searchData.hits.length === 0) {
+            throw new Error('No song matches found in third API');
+          }
+          
+          const songId = searchData.hits[0].result.id;
+          
+          // Get the lyrics for the song
+          const lyricsResponse = await fetch(`https://genius-song-lyrics1.p.rapidapi.com/song/lyrics/?id=${songId}`, options);
+          
+          if (!lyricsResponse.ok) {
+            throw new Error('Failed to fetch lyrics from third API');
+          }
+          
+          const lyricsData = await lyricsResponse.json();
+          
+          if (!lyricsData.lyrics || !lyricsData.lyrics.lyrics || !lyricsData.lyrics.lyrics.body) {
+            throw new Error('No lyrics content found in third API');
+          }
+          
+          const lyrics = lyricsData.lyrics.lyrics.body.plain;
+          
+          setLyrics(lyrics);
+          onLyricsSelect(lyrics);
+          toast.success('Lyrics loaded successfully!');
+          setShowPreview(true);
+          return;
+        } catch (thirdError) {
+          console.error('Third lyrics fetch approach failed:', thirdError);
+          // All three attempts failed, fall back to sample lyrics
+        }
+      }
+      
+      // Fall back to sample lyrics if all API attempts failed
+      const loadedLyrics = SAMPLE_LYRICS.join('\n');
       setLyrics(loadedLyrics);
       onLyricsSelect(loadedLyrics);
       toast.warning('Using sample lyrics (could not fetch actual lyrics)');
