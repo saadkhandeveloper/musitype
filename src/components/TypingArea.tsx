@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -5,6 +6,7 @@ interface TypingAreaProps {
   text: string;
   isPlaying: boolean;
   videoTitle?: string;
+  onRestart?: () => void;
 }
 
 type CharState = 'waiting' | 'correct' | 'incorrect' | 'active';
@@ -14,7 +16,7 @@ interface CharData {
   state: CharState;
 }
 
-const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle }) => {
+const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, onRestart }) => {
   const [charData, setCharData] = useState<CharData[]>([]);
   const [cursorPos, setCursorPos] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -31,27 +33,31 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle }) 
   // Initialize character data
   useEffect(() => {
     if (text) {
-      const initialCharData = text.split('').map((char) => ({
-        char,
-        state: 'waiting' as CharState,
-      }));
-      
-      if (initialCharData.length > 0) {
-        initialCharData[0].state = 'active';
-      }
-      
-      setCharData(initialCharData);
-      setCursorPos(0);
-      setStartTime(null);
-      setStats({
-        wpm: 0,
-        accuracy: 100,
-        correctChars: 0,
-        incorrectChars: 0,
-        totalChars: 0,
-      });
+      resetTyping();
     }
   }, [text]);
+
+  const resetTyping = () => {
+    const initialCharData = text.split('').map((char) => ({
+      char,
+      state: 'waiting' as CharState,
+    }));
+      
+    if (initialCharData.length > 0) {
+      initialCharData[0].state = 'active';
+    }
+      
+    setCharData(initialCharData);
+    setCursorPos(0);
+    setStartTime(null);
+    setStats({
+      wpm: 0,
+      accuracy: 100,
+      correctChars: 0,
+      incorrectChars: 0,
+      totalChars: 0,
+    });
+  };
 
   // Focus input when playing starts
   useEffect(() => {
@@ -61,7 +67,7 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle }) 
   }, [isPlaying]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Ignore non-character key events (including Shift, Ctrl, Alt, etc.)
+    // Ignore modifier keys and other non-character keys
     if (
       e.key === 'Shift' || 
       e.key === 'Control' || 
@@ -107,8 +113,8 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle }) 
       e.preventDefault();
     }
 
-    // Ignore if we're at the end of the text
-    if (cursorPos >= charData.length) return;
+    // Ignore if we're at the end of the text or not playing
+    if (cursorPos >= charData.length || !isPlaying) return;
 
     // Start timing on first keystroke
     if (startTime === null) {

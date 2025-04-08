@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import LinkInput from '@/components/LinkInput';
 import YouTubePlayer from '@/components/YouTubePlayer';
 import TypingArea from '@/components/TypingArea';
@@ -12,6 +12,7 @@ const Index = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [typingText, setTypingText] = useState('');
   const [videoTitle, setVideoTitle] = useState('');
+  const [key, setKey] = useState(0); // Used to force TypingArea to reset
 
   const handleVideoIdSubmit = (id: string) => {
     setVideoId(id);
@@ -40,6 +41,11 @@ const Index = () => {
     setTypingText(lyrics);
   };
 
+  const handleRestart = useCallback(() => {
+    // Force TypingArea component to reset by changing its key
+    setKey(prevKey => prevKey + 1);
+  }, []);
+
   return (
     <div className="min-h-screen bg-musitype-darker text-musitype-light flex flex-col">
       <header className="py-6 text-center">
@@ -60,6 +66,7 @@ const Index = () => {
         <div className="flex-1 flex flex-col items-center justify-center">
           {videoId && isPlayerReady && typingText && (
             <TypingArea 
+              key={key}
               text={typingText} 
               isPlaying={isPlaying} 
               videoTitle={videoTitle}
@@ -97,6 +104,7 @@ const Index = () => {
         onReady={() => setIsPlayerReady(true)}
         onPlaying={() => setIsPlaying(true)}
         onPaused={() => setIsPlaying(false)}
+        onRestart={handleRestart}
       />
       
       <Toaster position="top-center" />

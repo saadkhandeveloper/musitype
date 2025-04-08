@@ -1,20 +1,22 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import YouTube from 'react-youtube';
-import { Volume, Volume1, Volume2, VolumeX, Music, Play, Pause } from 'lucide-react';
+import { Volume, Volume1, Volume2, VolumeX, Music, Play, Pause, RefreshCcw } from 'lucide-react';
 
 interface YouTubePlayerProps {
   videoId: string | null;
   onReady: () => void;
   onPlaying: () => void;
   onPaused: () => void;
+  onRestart?: () => void;
 }
 
 const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ 
   videoId, 
   onReady,
   onPlaying,
-  onPaused
+  onPaused,
+  onRestart
 }) => {
   const playerRef = useRef<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -51,6 +53,20 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         playerRef.current.playVideo();
         setIsPlaying(true);
         onPlaying();
+      }
+    }
+  };
+
+  const handleRestart = () => {
+    if (playerRef.current) {
+      playerRef.current.seekTo(0);
+      if (!isPlaying) {
+        playerRef.current.playVideo();
+        setIsPlaying(true);
+        onPlaying();
+      }
+      if (onRestart) {
+        onRestart();
       }
     }
   };
@@ -124,14 +140,24 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
           <button
             onClick={togglePlay}
             className="text-musitype-light hover:text-musitype-primary transition-colors"
+            aria-label={isPlaying ? "Pause" : "Play"}
           >
             {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+          </button>
+
+          <button
+            onClick={handleRestart}
+            className="text-musitype-light hover:text-musitype-primary transition-colors"
+            aria-label="Restart"
+          >
+            <RefreshCcw size={20} />
           </button>
 
           <div className="flex items-center space-x-2">
             <button
               onClick={toggleMute}
               className="text-musitype-light hover:text-musitype-primary transition-colors"
+              aria-label={isMuted ? "Unmute" : "Mute"}
             >
               <VolumeIcon />
             </button>
@@ -142,6 +168,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               value={volume}
               onChange={handleVolumeChange}
               className="w-24 h-1 bg-gray-600 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-musitype-primary"
+              aria-label="Volume"
             />
           </div>
         </div>
