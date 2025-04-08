@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -66,53 +65,13 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
     }
   }, [isPlaying]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Ignore modifier keys and other non-character keys
-    if (
-      e.key === 'Shift' || 
-      e.key === 'Control' || 
-      e.key === 'Alt' || 
-      e.key === 'Meta' ||
-      e.key === 'CapsLock' ||
-      e.key === 'Tab' ||
-      e.key === 'Escape' ||
-      e.key === 'ArrowUp' ||
-      e.key === 'ArrowDown' ||
-      e.key === 'ArrowLeft' ||
-      e.key === 'ArrowRight' ||
-      e.key === 'Home' ||
-      e.key === 'End' ||
-      e.key === 'PageUp' ||
-      e.key === 'PageDown' ||
-      e.key === 'Insert' ||
-      e.key === 'Delete' ||
-      e.key === 'F1' ||
-      e.key === 'F2' ||
-      e.key === 'F3' ||
-      e.key === 'F4' ||
-      e.key === 'F5' ||
-      e.key === 'F6' ||
-      e.key === 'F7' ||
-      e.key === 'F8' ||
-      e.key === 'F9' ||
-      e.key === 'F10' ||
-      e.key === 'F11' ||
-      e.key === 'F12' ||
-      e.key === 'NumLock' ||
-      e.key === 'ScrollLock' ||
-      e.key === 'Pause'
-    ) {
-      return;
-    }
+  // Handle restart when video restarts
+  useEffect(() => {
+    // The restart functionality is already implemented in the parent component
+    // But we can add a listener here for any additional actions
+  }, []);
 
-    // Still ignore key combos
-    if (e.ctrlKey || e.altKey || e.metaKey) return;
-
-    // Prevent default for space to avoid page scrolling
-    if (e.key === ' ') {
-      e.preventDefault();
-    }
-
+  const handleKeyPress = (e: React.KeyboardEvent) => {
     // Ignore if we're at the end of the text or not playing
     if (cursorPos >= charData.length || !isPlaying) return;
 
@@ -124,42 +83,8 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
     const currentChar = charData[cursorPos].char;
     const newCharData = [...charData];
     
-    // Special handling for space
-    const pressedKey = e.key === ' ' ? ' ' : e.key;
-
-    // Handle backspace
-    if (e.key === 'Backspace') {
-      // Can't go back before the first character
-      if (cursorPos > 0) {
-        // Reset the current character to waiting
-        newCharData[cursorPos].state = 'waiting';
-        
-        // Check if the previous character was correct or incorrect
-        if (newCharData[cursorPos - 1].state === 'correct') {
-          setStats(prev => ({
-            ...prev,
-            correctChars: Math.max(prev.correctChars - 1, 0),
-            totalChars: Math.max(prev.totalChars - 1, 0),
-          }));
-        } else if (newCharData[cursorPos - 1].state === 'incorrect') {
-          setStats(prev => ({
-            ...prev,
-            incorrectChars: Math.max(prev.incorrectChars - 1, 0),
-            totalChars: Math.max(prev.totalChars - 1, 0),
-          }));
-        }
-        
-        // Move the cursor back and set the previous character as active
-        newCharData[cursorPos - 1].state = 'active';
-        setCursorPos(cursorPos - 1);
-        setCharData(newCharData);
-        updateStats();
-      }
-      return;
-    }
-    
     // Check if the pressed key matches the current character
-    if (pressedKey === currentChar) {
+    if (e.key === currentChar) {
       newCharData[cursorPos].state = 'correct';
       setStats(prev => ({
         ...prev,
@@ -186,6 +111,78 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
     
     // Update WPM and accuracy
     updateStats();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Ignore modifier keys and other non-character keys
+    if (
+      e.key === 'Shift' || 
+      e.key === 'Control' || 
+      e.key === 'Alt' || 
+      e.key === 'Meta' ||
+      e.key === 'CapsLock' ||
+      e.key === 'Tab' ||
+      e.key === 'Escape' ||
+      e.key === 'ArrowUp' ||
+      e.key === 'ArrowDown' ||
+      e.key === 'ArrowLeft' ||
+      e.key === 'ArrowRight' ||
+      e.key === 'Home' ||
+      e.key === 'End' ||
+      e.key === 'PageUp' ||
+      e.key === 'PageDown' ||
+      e.key === 'Insert' ||
+      e.key === 'Delete' ||
+      e.key.startsWith('F') ||
+      e.key === 'NumLock' ||
+      e.key === 'ScrollLock' ||
+      e.key === 'Pause'
+    ) {
+      return;
+    }
+
+    // Still ignore key combos
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+    // Prevent default for space to avoid page scrolling
+    if (e.key === ' ') {
+      e.preventDefault();
+    }
+
+    // Handle backspace key
+    if (e.key === 'Backspace') {
+      // Can't go back before the first character
+      if (cursorPos > 0) {
+        // Reset the current character to waiting
+        const newCharData = [...charData];
+        newCharData[cursorPos].state = 'waiting';
+        
+        // Check if the previous character was correct or incorrect
+        if (newCharData[cursorPos - 1].state === 'correct') {
+          setStats(prev => ({
+            ...prev,
+            correctChars: Math.max(prev.correctChars - 1, 0),
+            totalChars: Math.max(prev.totalChars - 1, 0),
+          }));
+        } else if (newCharData[cursorPos - 1].state === 'incorrect') {
+          setStats(prev => ({
+            ...prev,
+            incorrectChars: Math.max(prev.incorrectChars - 1, 0),
+            totalChars: Math.max(prev.totalChars - 1, 0),
+          }));
+        }
+        
+        // Move the cursor back and set the previous character as active
+        newCharData[cursorPos - 1].state = 'active';
+        setCursorPos(cursorPos - 1);
+        setCharData(newCharData);
+        updateStats();
+      }
+      return;
+    }
+
+    // Process regular key presses for typing
+    handleKeyPress(e);
   };
 
   const updateStats = () => {
