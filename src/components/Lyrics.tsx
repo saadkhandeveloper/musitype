@@ -19,6 +19,10 @@ const SAMPLE_LYRICS = [
   "There are many things that I would like to say to you but I don't know how"
 ];
 
+// Genius API credentials
+const GENIUS_CLIENT_ID = 'VkZ-RRMll6Jnx_XULP8vUcv1HOwtq-pa26BYeDzcBvVVn6PvI1NXKVWM9Ohq4yjX';
+const GENIUS_CLIENT_SECRET = 'nIo6vSMSMbQOInINJf-JTIT6hNKt_Jyp_vF9GXJI6GUpnplIrLacvdQzafOo5njQAQrPrMxVU6cqDnHJ5LoRzg';
+
 const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [lyrics, setLyrics] = useState<string>('');
@@ -73,45 +77,110 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
         songTitle = parts.slice(1).join(' '); // In case there are multiple hyphens
       }
       
-      // Try to fetch lyrics from lyrics.ovh API
-      const lyricsResponse = await fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(artist || 'unknown')}/${encodeURIComponent(songTitle)}`);
-      
-      if (!lyricsResponse.ok) {
-        throw new Error('Could not find lyrics for this song');
-      }
-      
-      const lyricsData = await lyricsResponse.json();
-      
-      if (!lyricsData.lyrics || lyricsData.lyrics.trim() === '') {
-        throw new Error('No lyrics found for this song');
-      }
-      
-      // Clean up the lyrics
-      const cleanedLyrics = lyricsData.lyrics
-        .replace(/\r\n/g, '\n')  // Normalize line endings
-        .replace(/\n{3,}/g, '\n\n')  // Remove excessive line breaks
-        .trim();
-      
-      setLyrics(cleanedLyrics);
-      onLyricsSelect(cleanedLyrics);
-      toast.success('Lyrics loaded successfully!');
-      // Automatically show preview after loading
-      setShowPreview(true);
-    } catch (error) {
-      console.error('Error fetching lyrics:', error);
-      
-      // Try a second API as backup
+      // Try with Genius API directly (first attempt)
       try {
-        const searchQuery = videoTitle
-          .replace(/(official\s*(music)?\s*video|lyrics|official|ft\.?|feat\.?|featuring)/gi, '')
-          .replace(/\(.*?\)|\[.*?\]/g, '')
-          .trim();
-        
-        // Make request to Happi Lyrics API
         const options = {
           method: 'GET',
           headers: {
-            'X-RapidAPI-Key': '3d85e2f108mshac4f73b15d8e6cap1beb54jsn5fa6d7aff68f', // This is a publishable RapidAPI key for demo purposes
+            'X-RapidAPI-Key': '3d85e2f108mshac4f73b15d8e6cap1beb54jsn5fa6d7aff68f',
+            'X-RapidAPI-Host': 'genius-song-lyrics1.p.rapidapi.com'
+          }
+        };
+        
+        // Search for the song using Genius API
+        const searchResponse = await fetch(`https://genius-song-lyrics1.p.rapidapi.com/search?q=${encodeURIComponent(searchQuery)}&per_page=3`, options);
+        
+        if (!searchResponse.ok) {
+          throw new Error('Genius API search failed');
+        }
+        
+        const searchData = await searchResponse.json();
+        
+        if (!searchData.hits || searchData.hits.length === 0) {
+          throw new Error('No song matches found in Genius API');
+        }
+        
+        // Find the best match by comparing titles
+        let bestMatch = searchData.hits[0];
+        const lowerSearchQuery = searchQuery.toLowerCase();
+        
+        for (const hit of searchData.hits) {
+          const hitTitle = hit.result.title.toLowerCase();
+          const hitArtist = hit.result.primary_artist.name.toLowerCase();
+          
+          if (
+            hitTitle.includes(songTitle.toLowerCase()) || 
+            lowerSearchQuery.includes(hitTitle) ||
+            (artist && hitArtist.includes(artist.toLowerCase()))
+          ) {
+            bestMatch = hit;
+            break;
+          }
+        }
+        
+        const songId = bestMatch.result.id;
+        
+        // Get the lyrics for the song
+        const lyricsResponse = await fetch(`https://genius-song-lyrics1.p.rapidapi.com/song/lyrics/?id=${songId}`, options);
+        
+        if (!lyricsResponse.ok) {
+          throw new Error('Failed to fetch lyrics from Genius API');
+        }
+        
+        const lyricsData = await lyricsResponse.json();
+        
+        if (!lyricsData.lyrics || !lyricsData.lyrics.lyrics || !lyricsData.lyrics.lyrics.body) {
+          throw new Error('No lyrics content found in Genius API');
+        }
+        
+        const lyrics = lyricsData.lyrics.lyrics.body.plain;
+        
+        setLyrics(lyrics);
+        onLyricsSelect(lyrics);
+        toast.success('Lyrics loaded successfully!');
+        setShowPreview(true);
+        return;
+      } catch (error) {
+        console.error('Genius API fetch failed:', error);
+        // Continue to next method
+      }
+      
+      // Try to fetch lyrics from lyrics.ovh API (second attempt)
+      try {
+        const lyricsResponse = await fetch(`https://api.lyrics.ovh/v1/${encodeURIComponent(artist || 'unknown')}/${encodeURIComponent(songTitle)}`);
+        
+        if (!lyricsResponse.ok) {
+          throw new Error('Could not find lyrics for this song');
+        }
+        
+        const lyricsData = await lyricsResponse.json();
+        
+        if (!lyricsData.lyrics || lyricsData.lyrics.trim() === '') {
+          throw new Error('No lyrics found for this song');
+        }
+        
+        // Clean up the lyrics
+        const cleanedLyrics = lyricsData.lyrics
+          .replace(/\r\n/g, '\n')  // Normalize line endings
+          .replace(/\n{3,}/g, '\n\n')  // Remove excessive line breaks
+          .trim();
+        
+        setLyrics(cleanedLyrics);
+        onLyricsSelect(cleanedLyrics);
+        toast.success('Lyrics loaded successfully!');
+        setShowPreview(true);
+        return;
+      } catch (error) {
+        console.error('Lyrics.ovh API failed:', error);
+        // Continue to third method
+      }
+      
+      // Try a third approach with Happi Lyrics API
+      try {
+        const options = {
+          method: 'GET',
+          headers: {
+            'X-RapidAPI-Key': '3d85e2f108mshac4f73b15d8e6cap1beb54jsn5fa6d7aff68f',
             'X-RapidAPI-Host': 'happi-lyrics-api.p.rapidapi.com'
           }
         };
@@ -144,66 +213,11 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
         setLyrics(lyricsData.result.lyrics);
         onLyricsSelect(lyricsData.result.lyrics);
         toast.success('Lyrics loaded successfully!');
-        // Show preview with lyrics
         setShowPreview(true);
         return;
-      } catch (backupError) {
-        console.error('Backup lyrics fetch failed:', backupError);
-        
-        // If both attempts fail, try a third approach with MusicMatch API
-        try {
-          const searchQuery = videoTitle
-            .replace(/(official\s*(music)?\s*video|lyrics|official|ft\.?|feat\.?|featuring)/gi, '')
-            .replace(/\(.*?\)|\[.*?\]/g, '')
-            .trim();
-          
-          const options = {
-            method: 'GET',
-            headers: {
-              'X-RapidAPI-Key': '3d85e2f108mshac4f73b15d8e6cap1beb54jsn5fa6d7aff68f', // This is a publishable RapidAPI key for demo purposes
-              'X-RapidAPI-Host': 'genius-song-lyrics1.p.rapidapi.com'
-            }
-          };
-          
-          // Search for the song
-          const searchResponse = await fetch(`https://genius-song-lyrics1.p.rapidapi.com/search?q=${encodeURIComponent(searchQuery)}&per_page=1`, options);
-          
-          if (!searchResponse.ok) {
-            throw new Error('Third lyrics API search failed');
-          }
-          
-          const searchData = await searchResponse.json();
-          
-          if (!searchData.hits || searchData.hits.length === 0) {
-            throw new Error('No song matches found in third API');
-          }
-          
-          const songId = searchData.hits[0].result.id;
-          
-          // Get the lyrics for the song
-          const lyricsResponse = await fetch(`https://genius-song-lyrics1.p.rapidapi.com/song/lyrics/?id=${songId}`, options);
-          
-          if (!lyricsResponse.ok) {
-            throw new Error('Failed to fetch lyrics from third API');
-          }
-          
-          const lyricsData = await lyricsResponse.json();
-          
-          if (!lyricsData.lyrics || !lyricsData.lyrics.lyrics || !lyricsData.lyrics.lyrics.body) {
-            throw new Error('No lyrics content found in third API');
-          }
-          
-          const lyrics = lyricsData.lyrics.lyrics.body.plain;
-          
-          setLyrics(lyrics);
-          onLyricsSelect(lyrics);
-          toast.success('Lyrics loaded successfully!');
-          setShowPreview(true);
-          return;
-        } catch (thirdError) {
-          console.error('Third lyrics fetch approach failed:', thirdError);
-          // All three attempts failed, fall back to sample lyrics
-        }
+      } catch (error) {
+        console.error('Third lyrics fetch approach failed:', error);
+        // Fall back to sample lyrics if all API attempts failed
       }
       
       // Fall back to sample lyrics if all API attempts failed
@@ -211,7 +225,6 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
       setLyrics(loadedLyrics);
       onLyricsSelect(loadedLyrics);
       toast.warning('Using sample lyrics (could not fetch actual lyrics)');
-      // Show preview with sample lyrics
       setShowPreview(true);
     } finally {
       setIsLoading(false);
@@ -229,7 +242,6 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
     }
     onLyricsSelect(lyrics);
     toast.success('Custom lyrics set for typing!');
-    // Show preview after setting custom lyrics
     setShowPreview(true);
   };
 
