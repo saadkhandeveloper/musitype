@@ -39,6 +39,8 @@ const Index = () => {
 
   const handleLyricsSelect = (lyrics: string) => {
     setTypingText(lyrics);
+    // Reset the typing area when new lyrics are selected
+    setKey(prevKey => prevKey + 1);
   };
 
   const handleRestart = useCallback(() => {

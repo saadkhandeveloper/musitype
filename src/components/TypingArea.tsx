@@ -57,9 +57,14 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
       incorrectChars: 0,
       totalChars: 0,
     });
+    
+    // Force focus on the input when resetting
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
-  // Focus input when playing starts
+  // Focus input when playing starts or component mounts
   useEffect(() => {
     if (isPlaying && inputRef.current) {
       inputRef.current.focus();
@@ -69,12 +74,13 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
   // Reset typing when onRestart is called
   useEffect(() => {
     if (onRestart) {
-      // Listen for restart events from parent
       resetTyping();
     }
   }, [onRestart]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
+    e.preventDefault(); // Prevent default for all key presses
+    
     // Ignore if we're at the end of the text or not playing
     if (cursorPos >= charData.length || !isPlaying) return;
 
@@ -120,6 +126,14 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Always prevent default for space to avoid page scrolling
+    if (e.key === ' ') {
+      e.preventDefault();
+    }
+
+    // Ignore if we're at the end of the text or not playing
+    if (cursorPos >= charData.length || !isPlaying) return;
+    
     // Ignore modifier keys and other non-character keys
     if (
       e.key === 'Shift' || 
@@ -150,16 +164,9 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
     // Still ignore key combos
     if (e.ctrlKey || e.altKey || e.metaKey) return;
 
-    // Prevent default for space to avoid page scrolling
-    if (e.key === ' ') {
-      e.preventDefault();
-    }
-
-    // Ignore if we're at the end of the text or not playing
-    if (cursorPos >= charData.length || !isPlaying) return;
-
     // Handle backspace key
     if (e.key === 'Backspace') {
+      e.preventDefault();
       // Can't go back before the first character
       if (cursorPos > 0) {
         // Reset the current character to waiting
@@ -217,7 +224,7 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
   useEffect(() => {
     if (containerRef.current && charData.length > 0) {
       const container = containerRef.current;
-      const activeElements = container.getElementsByClassName('text-musitype-gray bg-musitype-dark/30 text-opacity-60');
+      const activeElements = container.getElementsByClassName('text-musitype-gray bg-musitype-dark/30 text-opacity-90');
       
       if (activeElements.length > 0) {
         const activeElement = activeElements[0];
