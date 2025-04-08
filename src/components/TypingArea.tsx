@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +28,7 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
   });
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastSentenceEnd = useRef<number>(-1);
 
   // Initialize character data
   useEffect(() => {
@@ -36,6 +36,20 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
       resetTyping();
     }
   }, [text]);
+
+  // Helper function to detect end of sentences
+  const isEndOfSentence = (index: number): boolean => {
+    if (index >= charData.length - 1) return true;
+    
+    const currentChar = charData[index].char;
+    const nextChar = charData[index + 1].char;
+    
+    // Check for common sentence ending patterns
+    return (
+      (currentChar === '.' || currentChar === '!' || currentChar === '?') && 
+      (nextChar === ' ' || nextChar === '\n')
+    );
+  };
 
   const resetTyping = () => {
     const initialCharData = text.split('').map((char) => ({
@@ -57,6 +71,7 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
       incorrectChars: 0,
       totalChars: 0,
     });
+    lastSentenceEnd.current = -1;
     
     // Force focus on the input when resetting
     if (inputRef.current) {
@@ -111,6 +126,15 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
         incorrectChars: prev.incorrectChars + 1,
         totalChars: prev.totalChars + 1,
       }));
+    }
+
+    // Check if this is the end of a sentence
+    if (isEndOfSentence(cursorPos) && cursorPos > lastSentenceEnd.current) {
+      lastSentenceEnd.current = cursorPos;
+      // Scroll after a sentence is completed with a small delay
+      setTimeout(() => {
+        scrollToCurrentPosition();
+      }, 200);
     }
 
     // Move to next character if there is one
@@ -217,6 +241,28 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
         wpm,
         accuracy,
       }));
+    }
+  };
+
+  // Scroll to the current position in the text
+  const scrollToCurrentPosition = () => {
+    if (containerRef.current) {
+      const container = containerRef.current;
+      const activeElements = container.getElementsByClassName('text-musitype-gray bg-musitype-dark/30 text-opacity-90');
+      
+      if (activeElements.length > 0) {
+        const activeElement = activeElements[0];
+        activeElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      } else if (cursorPos >= charData.length - 1) {
+        // If we're at the end of the text, scroll to the bottom
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
     }
   };
 
