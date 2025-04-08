@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 interface LyricsProps {
   videoId: string | null;
@@ -18,13 +18,10 @@ const SAMPLE_LYRICS = [
   "There are many things that I would like to say to you but I don't know how"
 ];
 
-// Genius API credentials
-const GENIUS_CLIENT_ID = 'VkZ-RRMll6Jnx_XULP8vUcv1HOwtq-pa26BYeDzcBvVVn6PvI1NXKVWM9Ohq4yjX';
-const GENIUS_CLIENT_SECRET = 'nIo6vSMSMbQOInINJf-JTIT6hNKt_Jyp_vF9GXJI6GUpnplIrLacvdQzafOo5njQAQrPrMxVU6cqDnHJ5LoRzg';
-
 const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [videoTitle, setVideoTitle] = useState<string>('');
+  const [lyricsFound, setLyricsFound] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (videoId) {
@@ -60,6 +57,7 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
     }
 
     setIsLoading(true);
+    setLyricsFound(null);
     
     try {
       // Clean up the title to use as search query
@@ -138,6 +136,7 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
         const lyrics = lyricsData.lyrics.lyrics.body.plain;
         
         onLyricsSelect(lyrics);
+        setLyricsFound(true);
         toast.success('Lyrics loaded successfully!');
         return;
       } catch (error) {
@@ -166,6 +165,7 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
           .trim();
         
         onLyricsSelect(cleanedLyrics);
+        setLyricsFound(true);
         toast.success('Lyrics loaded successfully!');
         return;
       } catch (error) {
@@ -209,11 +209,13 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
         }
         
         onLyricsSelect(lyricsData.result.lyrics);
+        setLyricsFound(true);
         toast.success('Lyrics loaded successfully!');
         return;
       } catch (error) {
         console.error('Third lyrics fetch approach failed:', error);
-        // Fall back to sample lyrics if all API attempts failed
+        // All API attempts failed
+        setLyricsFound(false);
       }
       
       // Fall back to sample lyrics if all API attempts failed
@@ -231,6 +233,24 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
         <div className="flex items-center justify-center pointer-events-auto">
           <Loader2 className="animate-spin mr-2 text-musitype-gray" />
           <span className="text-musitype-gray">Fetching lyrics...</span>
+        </div>
+      )}
+      
+      {!isLoading && lyricsFound === false && (
+        <div className="flex flex-col items-center justify-center pointer-events-auto bg-black/80 p-6 rounded-lg shadow-lg">
+          <AlertCircle className="text-musitype-primary mb-2" size={32} />
+          <h3 className="text-musitype-light text-xl font-bold mb-2">Lyrics Not Found</h3>
+          <p className="text-musitype-gray text-center mb-4">
+            We couldn't find lyrics for this song.
+          </p>
+          <div className="flex flex-col space-y-2">
+            <p className="text-musitype-gray text-center text-sm">Try:</p>
+            <ul className="text-musitype-gray text-sm list-disc pl-5 space-y-1">
+              <li>Searching for a different song</li>
+              <li>Checking if the video title uses "Artist - Song" format</li>
+              <li>Looking for songs with "lyrics" in the title</li>
+            </ul>
+          </div>
         </div>
       )}
     </div>
