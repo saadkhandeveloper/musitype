@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye } from 'lucide-react';
 
 interface LyricsProps {
   videoId: string | null;
@@ -23,6 +23,7 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [lyrics, setLyrics] = useState<string>('');
   const [videoTitle, setVideoTitle] = useState<string>('');
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     if (videoId) {
@@ -111,6 +112,8 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
       setLyrics(cleanLyrics);
       onLyricsSelect(cleanLyrics);
       toast.success('Lyrics loaded successfully!');
+      // Automatically show preview after loading
+      setShowPreview(true);
     } catch (error) {
       console.error('Error fetching lyrics:', error);
       
@@ -119,6 +122,8 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
       setLyrics(loadedLyrics);
       onLyricsSelect(loadedLyrics);
       toast.warning('Using sample lyrics (could not fetch actual lyrics)');
+      // Show preview with sample lyrics
+      setShowPreview(true);
     } finally {
       setIsLoading(false);
     }
@@ -135,6 +140,12 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
     }
     onLyricsSelect(lyrics);
     toast.success('Custom lyrics set for typing!');
+    // Show preview after setting custom lyrics
+    setShowPreview(true);
+  };
+
+  const togglePreview = () => {
+    setShowPreview(!showPreview);
   };
 
   return (
@@ -172,6 +183,29 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
           Use Custom Text
         </Button>
       </div>
+
+      {lyrics && (
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-musitype-light font-semibold">Preview</h3>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={togglePreview}
+              className="text-musitype-gray hover:text-musitype-light"
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              {showPreview ? 'Hide' : 'Show'}
+            </Button>
+          </div>
+          
+          {showPreview && (
+            <div className="bg-musitype-dark border border-gray-700 rounded p-3 max-h-48 overflow-y-auto text-sm text-musitype-light whitespace-pre-wrap">
+              {lyrics}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
