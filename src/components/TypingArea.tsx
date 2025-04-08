@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -62,7 +61,45 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle }) 
   }, [isPlaying]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Ignore special key presses that aren't characters
+    // Ignore non-character key events (including Shift, Ctrl, Alt, etc.)
+    if (
+      e.key === 'Shift' || 
+      e.key === 'Control' || 
+      e.key === 'Alt' || 
+      e.key === 'Meta' ||
+      e.key === 'CapsLock' ||
+      e.key === 'Tab' ||
+      e.key === 'Escape' ||
+      e.key === 'ArrowUp' ||
+      e.key === 'ArrowDown' ||
+      e.key === 'ArrowLeft' ||
+      e.key === 'ArrowRight' ||
+      e.key === 'Home' ||
+      e.key === 'End' ||
+      e.key === 'PageUp' ||
+      e.key === 'PageDown' ||
+      e.key === 'Insert' ||
+      e.key === 'Delete' ||
+      e.key === 'F1' ||
+      e.key === 'F2' ||
+      e.key === 'F3' ||
+      e.key === 'F4' ||
+      e.key === 'F5' ||
+      e.key === 'F6' ||
+      e.key === 'F7' ||
+      e.key === 'F8' ||
+      e.key === 'F9' ||
+      e.key === 'F10' ||
+      e.key === 'F11' ||
+      e.key === 'F12' ||
+      e.key === 'NumLock' ||
+      e.key === 'ScrollLock' ||
+      e.key === 'Pause'
+    ) {
+      return;
+    }
+
+    // Still ignore key combos
     if (e.ctrlKey || e.altKey || e.metaKey) return;
 
     // Prevent default for space to avoid page scrolling
@@ -84,6 +121,37 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle }) 
     // Special handling for space
     const pressedKey = e.key === ' ' ? ' ' : e.key;
 
+    // Handle backspace
+    if (e.key === 'Backspace') {
+      // Can't go back before the first character
+      if (cursorPos > 0) {
+        // Reset the current character to waiting
+        newCharData[cursorPos].state = 'waiting';
+        
+        // Check if the previous character was correct or incorrect
+        if (newCharData[cursorPos - 1].state === 'correct') {
+          setStats(prev => ({
+            ...prev,
+            correctChars: Math.max(prev.correctChars - 1, 0),
+            totalChars: Math.max(prev.totalChars - 1, 0),
+          }));
+        } else if (newCharData[cursorPos - 1].state === 'incorrect') {
+          setStats(prev => ({
+            ...prev,
+            incorrectChars: Math.max(prev.incorrectChars - 1, 0),
+            totalChars: Math.max(prev.totalChars - 1, 0),
+          }));
+        }
+        
+        // Move the cursor back and set the previous character as active
+        newCharData[cursorPos - 1].state = 'active';
+        setCursorPos(cursorPos - 1);
+        setCharData(newCharData);
+        updateStats();
+      }
+      return;
+    }
+    
     // Check if the pressed key matches the current character
     if (pressedKey === currentChar) {
       newCharData[cursorPos].state = 'correct';
@@ -93,17 +161,6 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle }) 
         totalChars: prev.totalChars + 1,
       }));
     } else {
-      // Handle backspace
-      if (e.key === 'Backspace') {
-        // Can't go back before the first character
-        if (cursorPos > 0) {
-          newCharData[cursorPos].state = 'waiting';
-          newCharData[cursorPos - 1].state = 'active';
-          setCursorPos(cursorPos - 1);
-        }
-        return;
-      }
-      
       // Wrong character
       newCharData[cursorPos].state = 'incorrect';
       setStats(prev => ({
@@ -129,7 +186,11 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle }) 
     if (startTime) {
       const timeElapsed = (Date.now() - startTime) / 1000 / 60; // in minutes
       const totalChars = stats.correctChars + stats.incorrectChars;
+      
+      // Improved WPM calculation using "standard" 5 characters per word metric
       const wpm = Math.round((stats.correctChars / 5) / Math.max(timeElapsed, 0.01));
+      
+      // Accuracy calculation
       const accuracy = totalChars > 0 ? Math.round((stats.correctChars / totalChars) * 100) : 100;
 
       setStats(prev => ({
@@ -139,6 +200,31 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle }) 
       }));
     }
   };
+
+  // Auto-scroll the typing area to keep the current character in view
+  useEffect(() => {
+    if (containerRef.current && charData.length > 0) {
+      const container = containerRef.current;
+      const activeElements = container.getElementsByClassName('text-musitype-gray bg-musitype-dark/30 text-opacity-60');
+      
+      if (activeElements.length > 0) {
+        const activeElement = activeElements[0];
+        const containerRect = container.getBoundingClientRect();
+        const activeRect = activeElement.getBoundingClientRect();
+        
+        // Check if the active element is out of view
+        if (
+          activeRect.top < containerRect.top + 40 || 
+          activeRect.bottom > containerRect.bottom - 40
+        ) {
+          activeElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
+        }
+      }
+    }
+  }, [cursorPos]);
 
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col items-center">
@@ -155,7 +241,7 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle }) 
       
       <div 
         ref={containerRef}
-        className="w-full min-h-[200px] flex items-center justify-center text-center font-mono text-2xl leading-relaxed py-10"
+        className="w-full min-h-[200px] flex items-center justify-center text-center font-mono text-2xl leading-relaxed py-10 overflow-auto"
       >
         <div className="max-w-4xl">
           {charData.map((char, index) => (
