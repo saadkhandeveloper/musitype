@@ -70,6 +70,7 @@ const Index = () => {
               text={typingText} 
               isPlaying={isPlaying} 
               videoTitle={videoTitle}
+              onRestart={handleRestart}
             />
           )}
           

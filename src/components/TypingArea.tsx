@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -65,11 +66,13 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
     }
   }, [isPlaying]);
 
-  // Handle restart when video restarts
+  // Reset typing when onRestart is called
   useEffect(() => {
-    // The restart functionality is already implemented in the parent component
-    // But we can add a listener here for any additional actions
-  }, []);
+    if (onRestart) {
+      // Listen for restart events from parent
+      resetTyping();
+    }
+  }, [onRestart]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     // Ignore if we're at the end of the text or not playing
@@ -83,8 +86,11 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
     const currentChar = charData[cursorPos].char;
     const newCharData = [...charData];
     
+    // Special handling for space
+    const pressedKey = e.key === ' ' ? ' ' : e.key;
+    
     // Check if the pressed key matches the current character
-    if (e.key === currentChar) {
+    if (pressedKey === currentChar) {
       newCharData[cursorPos].state = 'correct';
       setStats(prev => ({
         ...prev,
@@ -148,6 +154,9 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
     if (e.key === ' ') {
       e.preventDefault();
     }
+
+    // Ignore if we're at the end of the text or not playing
+    if (cursorPos >= charData.length || !isPlaying) return;
 
     // Handle backspace key
     if (e.key === 'Backspace') {
@@ -251,10 +260,10 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
             <span 
               key={index}
               className={cn(
-                char.state === 'waiting' && "text-opacity-30 text-musitype-gray",
+                char.state === 'waiting' && "text-musitype-gray text-opacity-30",
                 char.state === 'correct' && "text-musitype-primary",
                 char.state === 'incorrect' && "text-musitype-error",
-                char.state === 'active' && "text-musitype-gray bg-musitype-dark/30 text-opacity-60"
+                char.state === 'active' && "text-musitype-gray bg-musitype-dark/30 text-opacity-90"
               )}
             >
               {char.char}
