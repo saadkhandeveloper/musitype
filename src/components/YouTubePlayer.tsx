@@ -22,6 +22,7 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(50);
   const [isMuted, setIsMuted] = useState(false);
+  const [videoTitle, setVideoTitle] = useState('');
 
   const opts = {
     height: '0',
@@ -40,6 +41,17 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
   const handleReady = (event: any) => {
     playerRef.current = event.target;
     event.target.setVolume(volume);
+    
+    // Get video title when player is ready
+    try {
+      const videoData = event.target.getVideoData();
+      if (videoData && videoData.title) {
+        setVideoTitle(videoData.title);
+      }
+    } catch (error) {
+      console.error('Error getting video title:', error);
+    }
+    
     onReady();
   };
 
@@ -129,14 +141,24 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
         />
       </div>
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 w-1/3">
           <Music className="text-musitype-primary" size={24} />
-          <span className="text-musitype-light text-sm truncate max-w-[200px]">
+          <span className="text-musitype-light text-sm truncate">
             {videoId ? "Now Playing" : "No video selected"}
           </span>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-center w-1/3">
+          {videoTitle && (
+            <div className="text-center">
+              <span className="text-musitype-primary font-medium text-sm truncate max-w-[200px] md:max-w-[300px] inline-block">
+                {videoTitle}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end space-x-4 w-1/3">
           <button
             onClick={togglePlay}
             className="text-musitype-light hover:text-musitype-primary transition-colors"
