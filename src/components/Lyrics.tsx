@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Loader2, Eye } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface LyricsProps {
   videoId: string | null;
@@ -25,17 +24,20 @@ const GENIUS_CLIENT_SECRET = 'nIo6vSMSMbQOInINJf-JTIT6hNKt_Jyp_vF9GXJI6GUpnplIrL
 
 const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [lyrics, setLyrics] = useState<string>('');
   const [videoTitle, setVideoTitle] = useState<string>('');
-  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     if (videoId) {
-      // Reset lyrics when video changes
-      setLyrics('');
       fetchVideoTitle(videoId);
     }
   }, [videoId]);
+
+  // Automatically fetch lyrics when video title is available
+  useEffect(() => {
+    if (videoTitle) {
+      fetchLyrics();
+    }
+  }, [videoTitle]);
 
   const fetchVideoTitle = async (id: string) => {
     try {
@@ -51,7 +53,7 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
     }
   };
 
-  const handleFetchLyrics = async () => {
+  const fetchLyrics = async () => {
     if (!videoId || !videoTitle) {
       toast.error('Unable to fetch lyrics: No video loaded or title unavailable');
       return;
@@ -135,10 +137,8 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
         
         const lyrics = lyricsData.lyrics.lyrics.body.plain;
         
-        setLyrics(lyrics);
         onLyricsSelect(lyrics);
         toast.success('Lyrics loaded successfully!');
-        setShowPreview(true);
         return;
       } catch (error) {
         console.error('Genius API fetch failed:', error);
@@ -165,10 +165,8 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
           .replace(/\n{3,}/g, '\n\n')  // Remove excessive line breaks
           .trim();
         
-        setLyrics(cleanedLyrics);
         onLyricsSelect(cleanedLyrics);
         toast.success('Lyrics loaded successfully!');
-        setShowPreview(true);
         return;
       } catch (error) {
         console.error('Lyrics.ovh API failed:', error);
@@ -210,10 +208,8 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
           throw new Error('No lyrics content found');
         }
         
-        setLyrics(lyricsData.result.lyrics);
         onLyricsSelect(lyricsData.result.lyrics);
         toast.success('Lyrics loaded successfully!');
-        setShowPreview(true);
         return;
       } catch (error) {
         console.error('Third lyrics fetch approach failed:', error);
@@ -222,89 +218,19 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
       
       // Fall back to sample lyrics if all API attempts failed
       const loadedLyrics = SAMPLE_LYRICS.join('\n');
-      setLyrics(loadedLyrics);
       onLyricsSelect(loadedLyrics);
       toast.warning('Using sample lyrics (could not fetch actual lyrics)');
-      setShowPreview(true);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCustomLyrics = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setLyrics(e.target.value);
-  };
-
-  const handleSubmitCustomLyrics = () => {
-    if (lyrics.trim().length < 10) {
-      toast.error('Please enter more text for typing practice');
-      return;
-    }
-    onLyricsSelect(lyrics);
-    toast.success('Custom lyrics set for typing!');
-    setShowPreview(true);
-  };
-
-  const togglePreview = () => {
-    setShowPreview(!showPreview);
-  };
-
   return (
-    <div className="w-full max-w-lg mx-auto">
-      <div className="mb-4">
-        <Button
-          onClick={handleFetchLyrics}
-          disabled={isLoading || !videoId}
-          className="w-full bg-musitype-dark text-musitype-light border border-gray-700 hover:bg-musitype-dark/80"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Fetching Lyrics...
-            </>
-          ) : (
-            videoTitle ? `Get Lyrics for "${videoTitle}"` : 'Use Example Lyrics'
-          )}
-        </Button>
-      </div>
-      
-      <div className="border-t border-gray-800 pt-4">
-        <p className="text-musitype-gray mb-2 text-sm">Or enter custom text for typing:</p>
-        <textarea
-          value={lyrics}
-          onChange={handleCustomLyrics}
-          placeholder="Enter custom text for typing practice..."
-          className="w-full h-24 p-2 bg-musitype-dark border border-gray-700 text-musitype-light rounded mb-2 focus:border-musitype-primary outline-none"
-        />
-        <Button
-          onClick={handleSubmitCustomLyrics}
-          disabled={lyrics.trim().length < 10}
-          className="w-full bg-musitype-primary text-musitype-darker hover:bg-musitype-primary/90"
-        >
-          Use Custom Text
-        </Button>
-      </div>
-
-      {lyrics && (
-        <div className="mt-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-musitype-light font-semibold">Preview</h3>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={togglePreview}
-              className="text-musitype-gray hover:text-musitype-light"
-            >
-              <Eye className="h-4 w-4 mr-1" />
-              {showPreview ? 'Hide' : 'Show'}
-            </Button>
-          </div>
-          
-          {showPreview && (
-            <div className="bg-musitype-dark border border-gray-700 rounded p-3 max-h-48 overflow-y-auto text-sm text-musitype-light whitespace-pre-wrap">
-              {lyrics}
-            </div>
-          )}
+    <div className="fixed top-0 left-0 w-full h-full pointer-events-none flex items-center justify-center">
+      {isLoading && (
+        <div className="flex items-center justify-center pointer-events-auto">
+          <Loader2 className="animate-spin mr-2 text-musitype-gray" />
+          <span className="text-musitype-gray">Fetching lyrics...</span>
         </div>
       )}
     </div>

@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface TypingAreaProps {
   text: string;
   isPlaying: boolean;
+  videoTitle?: string;
 }
 
 type CharState = 'waiting' | 'correct' | 'incorrect' | 'active';
@@ -13,7 +15,7 @@ interface CharData {
   state: CharState;
 }
 
-const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying }) => {
+const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle }) => {
   const [charData, setCharData] = useState<CharData[]>([]);
   const [cursorPos, setCursorPos] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -138,57 +140,38 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying }) => {
     }
   };
 
-  // Scroll the typing area to keep the active character in view
-  useEffect(() => {
-    if (containerRef.current) {
-      const container = containerRef.current;
-      const activeChar = container.querySelector('.char-active');
-      
-      if (activeChar) {
-        const containerRect = container.getBoundingClientRect();
-        const charRect = activeChar.getBoundingClientRect();
-        
-        // If the active character is outside the visible area, scroll to it
-        if (
-          charRect.left < containerRect.left ||
-          charRect.right > containerRect.right
-        ) {
-          // Calculate scroll to center the active character
-          const scrollAmount = charRect.left - containerRect.left - containerRect.width / 2 + charRect.width / 2;
-          container.scrollLeft += scrollAmount;
-        }
-      }
-    }
-  }, [cursorPos]);
-
   return (
-    <div className="w-full max-w-4xl mx-auto">
-      <div className="mb-8 flex justify-center space-x-8">
+    <div className="w-full max-w-6xl mx-auto flex flex-col items-center">
+      <div className="mb-4 flex justify-center space-x-8">
         <div className="text-center">
           <p className="text-musitype-gray text-sm">WPM</p>
           <p className="text-musitype-primary text-3xl font-mono">{stats.wpm}</p>
         </div>
         <div className="text-center">
-          <p className="text-musitype-gray text-sm">Accuracy</p>
+          <p className="text-musitype-gray text-sm">ACCURACY</p>
           <p className="text-musitype-primary text-3xl font-mono">{stats.accuracy}%</p>
         </div>
       </div>
       
       <div 
         ref={containerRef}
-        className="text-2xl leading-relaxed font-mono h-24 overflow-x-auto whitespace-pre overflow-y-hidden bg-musitype-dark p-4 rounded mb-6"
+        className="w-full min-h-[200px] flex items-center justify-center text-center font-mono text-2xl leading-relaxed py-10"
       >
-        {charData.map((char, index) => (
-          <span 
-            key={index}
-            className={cn(
-              `char-${char.state}`,
-              char.state === 'active' && "bg-musitype-dark/30"
-            )}
-          >
-            {char.char}
-          </span>
-        ))}
+        <div className="max-w-4xl">
+          {charData.map((char, index) => (
+            <span 
+              key={index}
+              className={cn(
+                char.state === 'waiting' && "text-opacity-30 text-musitype-gray",
+                char.state === 'correct' && "text-musitype-primary",
+                char.state === 'incorrect' && "text-musitype-error",
+                char.state === 'active' && "text-musitype-gray bg-musitype-dark/30 text-opacity-60"
+              )}
+            >
+              {char.char}
+            </span>
+          ))}
+        </div>
       </div>
       
       <input
@@ -203,12 +186,16 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying }) => {
         spellCheck="false"
       />
       
-      {!isPlaying && (
+      {!isPlaying && charData.length > 0 && (
         <p className="text-center text-musitype-gray">
-          {charData.length > 0 
-            ? "Play the music to start typing" 
-            : "Load a music video to get started"}
+          Play the music to start typing
         </p>
+      )}
+
+      {videoTitle && (
+        <div className="mt-8 text-center text-musitype-gray text-sm">
+          <p>Now playing: {videoTitle}</p>
+        </div>
       )}
     </div>
   );
