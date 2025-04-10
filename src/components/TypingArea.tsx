@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -35,7 +36,7 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
     if (index >= charData.length - 1) return true;
     
     const currentChar = charData[index].char;
-    const nextChar = charData[index + 1].char;
+    const nextChar = charData[index + 1]?.char;
     
     // Check for common sentence ending patterns
     return (
@@ -72,6 +73,13 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
     }
   };
 
+  // Initialize typing area when text changes
+  useEffect(() => {
+    if (text) {
+      resetTyping();
+    }
+  }, [text]);
+
   // Focus input when playing starts or component mounts
   useEffect(() => {
     if (isPlaying && inputRef.current) {
@@ -100,10 +108,10 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
     const currentChar = charData[cursorPos].char;
     const newCharData = [...charData];
     
-    // Special handling for space and apostrophes
+    // Special handling for apostrophes
     let pressedKey = e.key;
     
-    // Handle various apostrophe characters that might be input
+    // Normalize all apostrophe variants
     if (pressedKey === "'" || pressedKey === "'" || pressedKey === "'" || pressedKey === "`") {
       pressedKey = "'";
     }
@@ -113,8 +121,7 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
       pressedKey = ' ';
     }
     
-    // Check if the pressed key matches the current character
-    // Also normalize apostrophes in the current character
+    // Normalize the current character for comparison
     let normalizedCurrentChar = currentChar;
     if (normalizedCurrentChar === "'" || normalizedCurrentChar === "'" || normalizedCurrentChar === "'" || normalizedCurrentChar === "`") {
       normalizedCurrentChar = "'";
@@ -143,7 +150,7 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
       // Scroll after a sentence is completed with a small delay
       setTimeout(() => {
         scrollToCurrentPosition();
-      }, 200);
+      }, 100); // Reduced delay for smoother experience
     }
 
     // Move to next character if there is one
@@ -260,6 +267,8 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
       
       if (activeElements.length > 0) {
         const activeElement = activeElements[0];
+        
+        // Smoother scrolling behavior
         activeElement.scrollIntoView({
           behavior: 'smooth',
           block: 'center',
