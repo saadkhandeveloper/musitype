@@ -30,13 +30,6 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
   const containerRef = useRef<HTMLDivElement>(null);
   const lastSentenceEnd = useRef<number>(-1);
 
-  // Initialize character data
-  useEffect(() => {
-    if (text) {
-      resetTyping();
-    }
-  }, [text]);
-
   // Helper function to detect end of sentences
   const isEndOfSentence = (index: number): boolean => {
     if (index >= charData.length - 1) return true;
@@ -107,11 +100,27 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
     const currentChar = charData[cursorPos].char;
     const newCharData = [...charData];
     
-    // Special handling for space
-    const pressedKey = e.key === ' ' ? ' ' : e.key;
+    // Special handling for space and apostrophes
+    let pressedKey = e.key;
+    
+    // Handle various apostrophe characters that might be input
+    if (pressedKey === "'" || pressedKey === "'" || pressedKey === "'" || pressedKey === "`") {
+      pressedKey = "'";
+    }
+    
+    // Handle space consistently
+    if (pressedKey === ' ') {
+      pressedKey = ' ';
+    }
     
     // Check if the pressed key matches the current character
-    if (pressedKey === currentChar) {
+    // Also normalize apostrophes in the current character
+    let normalizedCurrentChar = currentChar;
+    if (normalizedCurrentChar === "'" || normalizedCurrentChar === "'" || normalizedCurrentChar === "'" || normalizedCurrentChar === "`") {
+      normalizedCurrentChar = "'";
+    }
+    
+    if (pressedKey === normalizedCurrentChar) {
       newCharData[cursorPos].state = 'correct';
       setStats(prev => ({
         ...prev,
@@ -244,7 +253,6 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
     }
   };
 
-  // Scroll to the current position in the text
   const scrollToCurrentPosition = () => {
     if (containerRef.current) {
       const container = containerRef.current;
