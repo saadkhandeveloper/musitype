@@ -63,12 +63,6 @@ const Index = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-musitype-darker text-musitype-light flex">
-        <RecentMusicSidebar 
-          recentMusic={recentMusic}
-          onMusicSelect={handleMusicSelect}
-          onMusicRemove={removeMusic}
-        />
-
         <div className="flex-1 flex flex-col">
           <header className="py-6 text-center">
             <h1 className="text-4xl font-bold mb-2">
@@ -130,6 +124,12 @@ const Index = () => {
             onRestart={handleRestart}
           />
         </div>
+        
+        <RecentMusicSidebar 
+          recentMusic={recentMusic}
+          onMusicSelect={handleMusicSelect}
+          onMusicRemove={removeMusic}
+        />
         
         <Toaster position="top-center" />
       </div>

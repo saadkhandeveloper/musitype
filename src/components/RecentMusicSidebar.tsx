@@ -26,7 +26,12 @@ const RecentMusicSidebar: React.FC<RecentMusicSidebarProps> = ({
   onMusicRemove,
 }) => {
   return (
-    <Sidebar variant="floating" collapsible="icon">
+    <Sidebar 
+      variant="floating" 
+      collapsible="icon" 
+      side="right" 
+      className="h-2/5 top-4 right-4 bottom-auto"
+    >
       <SidebarHeader>
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center">
