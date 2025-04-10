@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import LinkInput from '@/components/LinkInput';
@@ -63,7 +62,7 @@ const Index = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-musitype-darker text-musitype-light flex">
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col items-center">
           <header className="py-6 text-center">
             <h1 className="text-4xl font-bold mb-2">
               <span className="text-musitype-primary">Musi</span>
@@ -72,7 +71,7 @@ const Index = () => {
             <p className="text-musitype-gray">Type to the rhythm of your favorite music</p>
           </header>
 
-          <main className="container px-4 mx-auto pb-32 flex-1 flex flex-col">
+          <main className="container px-4 mx-auto pb-32 flex-1 flex flex-col max-w-2xl w-full">
             <div className="space-y-8 mb-8">
               <section>
                 <LinkInput onVideoIdSubmit={handleVideoIdSubmit} />
