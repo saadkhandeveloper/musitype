@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import LinkInput from '@/components/LinkInput';
@@ -61,65 +62,68 @@ const Index = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen bg-musitype-darker text-musitype-light flex justify-center">
-        <div className="w-full max-w-2xl px-4 flex flex-col items-center">
-          <header className="py-6 text-center">
-            <h1 className="text-4xl font-bold mb-2">
-              <span className="text-musitype-primary">Musi</span>
-              <span>type</span>
-            </h1>
-            <p className="text-musitype-gray">Type to the rhythm of your favorite music</p>
-          </header>
+      <div className="min-h-screen bg-musitype-darker text-musitype-light flex">
+        {/* Main content wrapper - now takes full width and centers content */}
+        <div className="flex-1 flex justify-center">
+          <div className="w-full max-w-2xl px-4 flex flex-col items-center relative z-10">
+            <header className="py-6 text-center">
+              <h1 className="text-4xl font-bold mb-2">
+                <span className="text-musitype-primary">Musi</span>
+                <span>type</span>
+              </h1>
+              <p className="text-musitype-gray">Type to the rhythm of your favorite music</p>
+            </header>
 
-          <main className="space-y-8 w-full">
-            <section>
-              <LinkInput onVideoIdSubmit={handleVideoIdSubmit} />
-            </section>
+            <main className="space-y-8 w-full">
+              <section>
+                <LinkInput onVideoIdSubmit={handleVideoIdSubmit} />
+              </section>
 
-            <div className="flex flex-col items-center justify-center min-h-[300px]">
-              {videoId && isPlayerReady && typingText && (
-                <TypingArea 
-                  key={key}
-                  text={typingText} 
-                  isPlaying={isPlaying} 
-                  videoTitle={videoTitle}
-                  onRestart={handleRestart}
-                />
-              )}
-              
-              {!isPlayerReady && videoId && (
-                <div className="text-center py-8">
-                  <div className="animate-pulse text-musitype-gray">Loading player...</div>
-                </div>
-              )}
-              
-              {!videoId && (
-                <div className="text-center py-12">
-                  <div className="mb-6 text-musitype-gray">
-                    <p className="text-xl mb-2">How it works:</p>
-                    <ol className="list-decimal list-inside text-left max-w-md mx-auto space-y-2">
-                      <li>Paste a YouTube music video link above</li>
-                      <li>Wait for the lyrics to load automatically</li>
-                      <li>Play the music and type along to practice</li>
-                      <li>See your WPM and accuracy stats in real-time</li>
-                    </ol>
+              <div className="flex flex-col items-center justify-center min-h-[300px]">
+                {videoId && isPlayerReady && typingText && (
+                  <TypingArea 
+                    key={key}
+                    text={typingText} 
+                    isPlaying={isPlaying} 
+                    videoTitle={videoTitle}
+                    onRestart={handleRestart}
+                  />
+                )}
+                
+                {!isPlayerReady && videoId && (
+                  <div className="text-center py-8">
+                    <div className="animate-pulse text-musitype-gray">Loading player...</div>
                   </div>
-                </div>
-              )}
-            </div>
-          </main>
+                )}
+                
+                {!videoId && (
+                  <div className="text-center py-12">
+                    <div className="mb-6 text-musitype-gray">
+                      <p className="text-xl mb-2">How it works:</p>
+                      <ol className="list-decimal list-inside text-left max-w-md mx-auto space-y-2">
+                        <li>Paste a YouTube music video link above</li>
+                        <li>Wait for the lyrics to load automatically</li>
+                        <li>Play the music and type along to practice</li>
+                        <li>See your WPM and accuracy stats in real-time</li>
+                      </ol>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </main>
 
-          {videoId && (
-            <Lyrics videoId={videoId} onLyricsSelect={handleLyricsSelect} />
-          )}
+            {videoId && (
+              <Lyrics videoId={videoId} onLyricsSelect={handleLyricsSelect} />
+            )}
 
-          <YouTubePlayer 
-            videoId={videoId} 
-            onReady={() => setIsPlayerReady(true)}
-            onPlaying={() => setIsPlaying(true)}
-            onPaused={() => setIsPlaying(false)}
-            onRestart={handleRestart}
-          />
+            <YouTubePlayer 
+              videoId={videoId} 
+              onReady={() => setIsPlayerReady(true)}
+              onPlaying={() => setIsPlaying(true)}
+              onPaused={() => setIsPlaying(false)}
+              onRestart={handleRestart}
+            />
+          </div>
         </div>
         
         <RecentMusicSidebar 
