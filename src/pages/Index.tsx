@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import LinkInput from '@/components/LinkInput';
 import YouTubePlayer from '@/components/YouTubePlayer';
@@ -25,21 +24,17 @@ const Index = () => {
     setIsPlaying(false);
     setTypingText('');
     
-    // Fetch video title
+    // Fetch video title but don't save to recent music yet
     fetchVideoTitle(id);
   };
 
   const fetchVideoTitle = async (id: string) => {
     try {
-      // Use the YouTube oEmbed API to get video info
       const response = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json`);
       if (!response.ok) throw new Error('Failed to fetch video info');
       
       const data = await response.json();
       setVideoTitle(data.title);
-      
-      // Save to recent music
-      saveMusic(id, data.title);
     } catch (error) {
       console.error('Error fetching video title:', error);
       setVideoTitle('');

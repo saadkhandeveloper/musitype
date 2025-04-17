@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Loader2, AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useRecentMusic } from '@/hooks/use-recent-music';
 
 interface LyricsProps {
   videoId: string | null;
@@ -23,28 +24,14 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
   const [videoTitle, setVideoTitle] = useState<string>('');
   const [lyricsFound, setLyricsFound] = useState<boolean | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  
+  const { saveMusic } = useRecentMusic();
 
   useEffect(() => {
     if (videoId) {
       fetchVideoTitle(videoId);
     }
   }, [videoId]);
-
-  // Automatically fetch lyrics when video title is available
-  useEffect(() => {
-    if (videoTitle) {
-      fetchLyrics();
-    }
-  }, [videoTitle]);
-
-  // Show error modal when lyrics are not found
-  useEffect(() => {
-    if (lyricsFound === false) {
-      setShowErrorModal(true);
-    } else {
-      setShowErrorModal(false);
-    }
-  }, [lyricsFound]);
 
   const fetchVideoTitle = async (id: string) => {
     try {
@@ -58,14 +45,6 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
       console.error('Error fetching video title:', error);
       setVideoTitle('');
     }
-  };
-
-  const handleDismissError = () => {
-    setShowErrorModal(false);
-    // Use sample lyrics as fallback
-    const loadedLyrics = SAMPLE_LYRICS.join('\n');
-    onLyricsSelect(loadedLyrics);
-    toast.warning('Using sample lyrics instead');
   };
 
   const fetchLyrics = async () => {
@@ -155,6 +134,8 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
         
         onLyricsSelect(lyrics);
         setLyricsFound(true);
+        // Only save to recent music if lyrics are found
+        saveMusic(videoId, videoTitle);
         toast.success('Lyrics loaded successfully!');
         return;
       } catch (error) {
@@ -184,6 +165,8 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
         
         onLyricsSelect(cleanedLyrics);
         setLyricsFound(true);
+        // Only save to recent music if lyrics are found
+        saveMusic(videoId, videoTitle);
         toast.success('Lyrics loaded successfully!');
         return;
       } catch (error) {
@@ -228,6 +211,8 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
         
         onLyricsSelect(lyricsData.result.lyrics);
         setLyricsFound(true);
+        // Only save to recent music if lyrics are found
+        saveMusic(videoId, videoTitle);
         toast.success('Lyrics loaded successfully!');
         return;
       } catch (error) {
@@ -239,6 +224,23 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
       setIsLoading(false);
     }
   };
+
+  const handleDismissError = () => {
+    setShowErrorModal(false);
+    // Use sample lyrics as fallback
+    const loadedLyrics = SAMPLE_LYRICS.join('\n');
+    onLyricsSelect(loadedLyrics);
+    toast.warning('Using sample lyrics instead');
+  };
+
+  // Show error modal when lyrics are not found
+  useEffect(() => {
+    if (lyricsFound === false) {
+      setShowErrorModal(true);
+    } else {
+      setShowErrorModal(false);
+    }
+  }, [lyricsFound]);
 
   return (
     <div className="fixed top-0 left-0 w-full h-full pointer-events-none flex items-center justify-center z-50">
