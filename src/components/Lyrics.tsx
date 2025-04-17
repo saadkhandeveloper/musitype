@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface LyricsProps {
   videoId: string | null;
@@ -22,6 +22,7 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [videoTitle, setVideoTitle] = useState<string>('');
   const [lyricsFound, setLyricsFound] = useState<boolean | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   useEffect(() => {
     if (videoId) {
@@ -36,6 +37,15 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
     }
   }, [videoTitle]);
 
+  // Show error modal when lyrics are not found
+  useEffect(() => {
+    if (lyricsFound === false) {
+      setShowErrorModal(true);
+    } else {
+      setShowErrorModal(false);
+    }
+  }, [lyricsFound]);
+
   const fetchVideoTitle = async (id: string) => {
     try {
       // Use the YouTube oEmbed API to get video info
@@ -48,6 +58,14 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
       console.error('Error fetching video title:', error);
       setVideoTitle('');
     }
+  };
+
+  const handleDismissError = () => {
+    setShowErrorModal(false);
+    // Use sample lyrics as fallback
+    const loadedLyrics = SAMPLE_LYRICS.join('\n');
+    onLyricsSelect(loadedLyrics);
+    toast.warning('Using sample lyrics instead');
   };
 
   const fetchLyrics = async () => {
@@ -217,39 +235,60 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
         // All API attempts failed
         setLyricsFound(false);
       }
-      
-      // Fall back to sample lyrics if all API attempts failed
-      const loadedLyrics = SAMPLE_LYRICS.join('\n');
-      onLyricsSelect(loadedLyrics);
-      toast.warning('Using sample lyrics (could not fetch actual lyrics)');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed top-0 left-0 w-full h-full pointer-events-none flex items-center justify-center">
+    <div className="fixed top-0 left-0 w-full h-full pointer-events-none flex items-center justify-center z-50">
       {isLoading && (
-        <div className="flex items-center justify-center pointer-events-auto">
-          <Loader2 className="animate-spin mr-2 text-musitype-gray" />
-          <span className="text-musitype-gray">Fetching lyrics...</span>
+        <div className="flex items-center justify-center pointer-events-auto bg-black/50 p-4 rounded-lg shadow-lg animate-fade-in">
+          <Loader2 className="animate-spin mr-2 text-musitype-primary" />
+          <span className="text-musitype-light">Fetching lyrics...</span>
         </div>
       )}
       
-      {!isLoading && lyricsFound === false && (
-        <div className="flex flex-col items-center justify-center pointer-events-auto bg-black/80 p-6 rounded-lg shadow-lg">
-          <AlertCircle className="text-musitype-primary mb-2" size={32} />
-          <h3 className="text-musitype-light text-xl font-bold mb-2">Lyrics Not Found</h3>
-          <p className="text-musitype-gray text-center mb-4">
-            We couldn't find lyrics for this song.
-          </p>
-          <div className="flex flex-col space-y-2">
-            <p className="text-musitype-gray text-center text-sm">Try:</p>
-            <ul className="text-musitype-gray text-sm list-disc pl-5 space-y-1">
-              <li>Searching for a different song</li>
-              <li>Checking if the video title uses "Artist - Song" format</li>
-              <li>Looking for songs with "lyrics" in the title</li>
-            </ul>
+      {!isLoading && showErrorModal && (
+        <div className="pointer-events-auto bg-musitype-darker/95 p-6 rounded-xl border border-musitype-gray/30 shadow-2xl max-w-md w-full mx-4 backdrop-blur animate-scale-in">
+          <div className="relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute right-0 top-0 text-musitype-gray hover:text-musitype-light"
+              onClick={handleDismissError}
+            >
+              <X size={18} />
+            </Button>
+            
+            <div className="flex flex-col items-center text-center mb-6">
+              <div className="bg-musitype-primary/10 p-3 rounded-full mb-4">
+                <AlertCircle className="text-musitype-primary" size={28} />
+              </div>
+              <h3 className="text-musitype-light text-xl font-bold mb-2">No Lyrics Found</h3>
+              <p className="text-musitype-gray text-center">
+                We couldn't find lyrics for this song.
+              </p>
+            </div>
+            
+            <div className="bg-black/20 rounded-lg p-4">
+              <p className="text-musitype-gray text-sm font-medium mb-2">Try these options:</p>
+              <ul className="text-musitype-gray/80 text-sm list-disc pl-5 space-y-2">
+                <li>Search for a different song</li>
+                <li>Try a song with "lyrics" in the title</li>
+                <li>Check if the video uses "Artist - Song" format</li>
+              </ul>
+            </div>
+
+            <div className="mt-6 flex justify-center">
+              <Button 
+                variant="outline" 
+                className="border-musitype-primary/50 hover:bg-musitype-primary/10 text-musitype-primary" 
+                onClick={handleDismissError}
+              >
+                Use Sample Lyrics Instead
+              </Button>
+            </div>
           </div>
         </div>
       )}
