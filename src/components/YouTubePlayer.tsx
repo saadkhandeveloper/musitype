@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import YouTube from 'react-youtube';
 import { Volume, Volume1, Volume2, VolumeX, Music, Play, Pause, RefreshCcw } from 'lucide-react';
@@ -42,7 +41,6 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     playerRef.current = event.target;
     event.target.setVolume(volume);
     
-    // Get video title when player is ready
     try {
       const videoData = event.target.getVideoData();
       if (videoData && videoData.title) {
@@ -110,7 +108,6 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
     }
   };
 
-  // Render volume icon based on level
   const VolumeIcon = () => {
     if (isMuted || volume === 0) return <VolumeX size={20} />;
     if (volume < 33) return <Volume size={20} />;
@@ -140,31 +137,17 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
           }}
         />
       </div>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4 w-1/3">
-          <Music className="text-musitype-primary" size={24} />
-          <span className="text-musitype-light text-sm truncate">
-            {videoId ? "Now Playing" : "No video selected"}
-          </span>
-        </div>
+      
+      <div className="max-w-7xl mx-auto grid grid-cols-3 items-center">
+        <div className="col-span-1"></div>
 
-        <div className="flex items-center justify-center w-1/3">
-          {videoTitle && (
-            <div className="text-center">
-              <span className="text-musitype-primary font-medium text-sm truncate max-w-[200px] md:max-w-[300px] inline-block">
-                {videoTitle}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center justify-end space-x-4 w-1/3">
+        <div className="col-span-1 flex items-center justify-center space-x-6">
           <button
             onClick={togglePlay}
             className="text-musitype-light hover:text-musitype-primary transition-colors"
             aria-label={isPlaying ? "Pause" : "Play"}
           >
-            {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+            {isPlaying ? <Pause size={24} /> : <Play size={24} />}
           </button>
 
           <button
@@ -192,6 +175,15 @@ const YouTubePlayer: React.FC<YouTubePlayerProps> = ({
               className="w-24 h-1 bg-gray-600 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-musitype-primary"
               aria-label="Volume"
             />
+          </div>
+        </div>
+
+        <div className="col-span-1 flex items-center justify-end">
+          <div className="flex items-center space-x-3">
+            <Music className="text-musitype-primary" size={20} />
+            <span className="text-musitype-light text-sm truncate max-w-[200px]">
+              {videoTitle || (videoId ? "Now Playing" : "No video selected")}
+            </span>
           </div>
         </div>
       </div>
