@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import LinkInput from '@/components/LinkInput';
 import YouTubePlayer from '@/components/YouTubePlayer';
@@ -5,7 +6,7 @@ import TypingArea from '@/components/TypingArea';
 import Lyrics from '@/components/Lyrics';
 import { useRecentMusic } from '@/hooks/use-recent-music';
 import { Toaster } from '@/components/ui/sonner';
-import { Music, X } from 'lucide-react';
+import { Music, X, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
@@ -17,7 +18,7 @@ const Index = () => {
   const [videoTitle, setVideoTitle] = useState('');
   const [key, setKey] = useState(0); // Used to force TypingArea to reset
   
-  const { recentMusic, saveMusic, removeMusic } = useRecentMusic();
+  const { recentMusic, saveMusic, removeMusic, clearRecentMusic } = useRecentMusic();
 
   const handleVideoIdSubmit = (id: string) => {
     setVideoId(id);
@@ -56,6 +57,11 @@ const Index = () => {
     handleVideoIdSubmit(id);
   };
 
+  const handleRemoveMusic = (e: React.MouseEvent, videoId: string) => {
+    e.stopPropagation();
+    removeMusic(videoId);
+  };
+
   return (
     <div className="min-h-screen bg-musitype-darker text-musitype-light flex flex-col items-center">
       <div className="w-full max-w-4xl px-4">
@@ -75,6 +81,18 @@ const Index = () => {
           {/* Recent Music Row */}
           {recentMusic.length > 0 && (
             <section className="w-full">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-sm text-musitype-gray">Recent music</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs text-musitype-gray hover:text-musitype-light flex items-center gap-1"
+                  onClick={clearRecentMusic}
+                >
+                  <Trash2 size={12} />
+                  <span>Clear history</span>
+                </Button>
+              </div>
               <ScrollArea className="w-full border border-musitype-gray/20 rounded-lg p-4">
                 <div className="flex space-x-4">
                   {recentMusic.map((item) => (
@@ -88,11 +106,8 @@ const Index = () => {
                         <span className="max-w-[150px] truncate">{item.title}</span>
                         <X
                           size={14}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeMusic(item.videoId);
-                          }}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-musitype-gray hover:text-musitype-error"
+                          onClick={(e) => handleRemoveMusic(e, item.videoId)}
                         />
                       </Button>
                     </div>
