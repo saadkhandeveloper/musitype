@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Loader2, AlertCircle, X } from 'lucide-react';
@@ -32,6 +33,13 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
       fetchVideoTitle(videoId);
     }
   }, [videoId]);
+
+  // When videoId changes, automatically fetch lyrics if we have a title
+  useEffect(() => {
+    if (videoId && videoTitle) {
+      fetchLyrics();
+    }
+  }, [videoId, videoTitle]);
 
   const fetchVideoTitle = async (id: string) => {
     try {
@@ -132,10 +140,13 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
         
         const lyrics = lyricsData.lyrics.lyrics.body.plain;
         
+        // Save to recent music BEFORE calling onLyricsSelect
+        if (videoId) {
+          saveMusic(videoId, videoTitle);
+        }
+        
         onLyricsSelect(lyrics);
         setLyricsFound(true);
-        // Only save to recent music if lyrics are found
-        saveMusic(videoId, videoTitle);
         toast.success('Lyrics loaded successfully!');
         return;
       } catch (error) {
@@ -163,10 +174,13 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
           .replace(/\n{3,}/g, '\n\n')  // Remove excessive line breaks
           .trim();
         
+        // Save to recent music BEFORE calling onLyricsSelect
+        if (videoId) {
+          saveMusic(videoId, videoTitle);
+        }
+        
         onLyricsSelect(cleanedLyrics);
         setLyricsFound(true);
-        // Only save to recent music if lyrics are found
-        saveMusic(videoId, videoTitle);
         toast.success('Lyrics loaded successfully!');
         return;
       } catch (error) {
@@ -209,10 +223,13 @@ const Lyrics: React.FC<LyricsProps> = ({ videoId, onLyricsSelect }) => {
           throw new Error('No lyrics content found');
         }
         
+        // Save to recent music BEFORE calling onLyricsSelect
+        if (videoId) {
+          saveMusic(videoId, videoTitle);
+        }
+        
         onLyricsSelect(lyricsData.result.lyrics);
         setLyricsFound(true);
-        // Only save to recent music if lyrics are found
-        saveMusic(videoId, videoTitle);
         toast.success('Lyrics loaded successfully!');
         return;
       } catch (error) {

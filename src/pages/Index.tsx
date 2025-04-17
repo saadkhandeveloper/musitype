@@ -26,6 +26,7 @@ const Index = () => {
     setTypingText('');
     
     // Fetch video title but don't save to recent music yet
+    // Lyrics component will handle saving to recent music when lyrics are found
     fetchVideoTitle(id);
   };
 
