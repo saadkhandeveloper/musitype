@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Toggle } from '@/components/ui/toggle';
@@ -356,7 +357,6 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
           className="h-8 px-2 text-xs"
         >
           {autoTyping ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-          <span className="ml-2">Auto-type</span>
         </Toggle>
       </div>
       
