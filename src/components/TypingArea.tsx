@@ -1,6 +1,7 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { Toggle } from '@/components/ui/toggle';
+import { Play, Pause } from 'lucide-react';
 
 interface TypingAreaProps {
   text: string;
@@ -30,15 +31,16 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const lastSentenceEnd = useRef<number>(-1);
+  const [autoTyping, setAutoTyping] = useState(false);
+  const autoTypingInterval = useRef<NodeJS.Timeout | null>(null);
+  const typingSpeed = 150; // Characters per minute (roughly 150 WPM)
 
-  // Helper function to detect end of sentences
   const isEndOfSentence = (index: number): boolean => {
     if (index >= charData.length - 1) return true;
     
     const currentChar = charData[index].char;
     const nextChar = charData[index + 1]?.char;
     
-    // Check for common sentence ending patterns
     return (
       (currentChar === '.' || currentChar === '!' || currentChar === '?') && 
       (nextChar === ' ' || nextChar === '\n')
@@ -67,27 +69,23 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
     });
     lastSentenceEnd.current = -1;
     
-    // Force focus on the input when resetting
     if (inputRef.current) {
       inputRef.current.focus();
     }
   };
 
-  // Initialize typing area when text changes
   useEffect(() => {
     if (text) {
       resetTyping();
     }
   }, [text]);
 
-  // Focus input when playing starts or component mounts
   useEffect(() => {
     if (isPlaying && inputRef.current) {
       inputRef.current.focus();
     }
   }, [isPlaying]);
 
-  // Reset typing when onRestart is called
   useEffect(() => {
     if (onRestart) {
       resetTyping();
@@ -95,12 +93,10 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
   }, [onRestart]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    e.preventDefault(); // Prevent default for all key presses
+    e.preventDefault();
     
-    // Ignore if we're at the end of the text or not playing
     if (cursorPos >= charData.length || !isPlaying) return;
 
-    // Start timing on first keystroke
     if (startTime === null) {
       setStartTime(Date.now());
     }
@@ -108,20 +104,16 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
     const currentChar = charData[cursorPos].char;
     const newCharData = [...charData];
     
-    // Special handling for apostrophes
     let pressedKey = e.key;
     
-    // Normalize all apostrophe variants
     if (pressedKey === "'" || pressedKey === "'" || pressedKey === "'" || pressedKey === "`") {
       pressedKey = "'";
     }
     
-    // Handle space consistently
     if (pressedKey === ' ') {
       pressedKey = ' ';
     }
     
-    // Normalize the current character for comparison
     let normalizedCurrentChar = currentChar;
     if (normalizedCurrentChar === "'" || normalizedCurrentChar === "'" || normalizedCurrentChar === "'" || normalizedCurrentChar === "`") {
       normalizedCurrentChar = "'";
@@ -135,7 +127,6 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
         totalChars: prev.totalChars + 1,
       }));
     } else {
-      // Wrong character
       newCharData[cursorPos].state = 'incorrect';
       setStats(prev => ({
         ...prev,
@@ -144,37 +135,29 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
       }));
     }
 
-    // Check if this is the end of a sentence
     if (isEndOfSentence(cursorPos) && cursorPos > lastSentenceEnd.current) {
       lastSentenceEnd.current = cursorPos;
-      // Scroll after a sentence is completed with a small delay
       setTimeout(() => {
         scrollToCurrentPosition();
-      }, 100); // Reduced delay for smoother experience
+      }, 100);
     }
 
-    // Move to next character if there is one
     if (cursorPos < charData.length - 1) {
       newCharData[cursorPos + 1].state = 'active';
       setCursorPos(cursorPos + 1);
     }
 
     setCharData(newCharData);
-    
-    // Update WPM and accuracy
     updateStats();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Always prevent default for space to avoid page scrolling
     if (e.key === ' ') {
       e.preventDefault();
     }
 
-    // Ignore if we're at the end of the text or not playing
     if (cursorPos >= charData.length || !isPlaying) return;
     
-    // Ignore modifier keys and other non-character keys
     if (
       e.key === 'Shift' || 
       e.key === 'Control' || 
@@ -201,19 +184,14 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
       return;
     }
 
-    // Still ignore key combos
     if (e.ctrlKey || e.altKey || e.metaKey) return;
 
-    // Handle backspace key
     if (e.key === 'Backspace') {
       e.preventDefault();
-      // Can't go back before the first character
       if (cursorPos > 0) {
-        // Reset the current character to waiting
         const newCharData = [...charData];
         newCharData[cursorPos].state = 'waiting';
         
-        // Check if the previous character was correct or incorrect
         if (newCharData[cursorPos - 1].state === 'correct') {
           setStats(prev => ({
             ...prev,
@@ -228,7 +206,6 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
           }));
         }
         
-        // Move the cursor back and set the previous character as active
         newCharData[cursorPos - 1].state = 'active';
         setCursorPos(cursorPos - 1);
         setCharData(newCharData);
@@ -237,19 +214,16 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
       return;
     }
 
-    // Process regular key presses for typing
     handleKeyPress(e);
   };
 
   const updateStats = () => {
     if (startTime) {
-      const timeElapsed = (Date.now() - startTime) / 1000 / 60; // in minutes
+      const timeElapsed = (Date.now() - startTime) / 1000 / 60;
       const totalChars = stats.correctChars + stats.incorrectChars;
       
-      // Improved WPM calculation using "standard" 5 characters per word metric
       const wpm = Math.round((stats.correctChars / 5) / Math.max(timeElapsed, 0.01));
       
-      // Accuracy calculation
       const accuracy = totalChars > 0 ? Math.round((stats.correctChars / totalChars) * 100) : 100;
 
       setStats(prev => ({
@@ -268,13 +242,11 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
       if (activeElements.length > 0) {
         const activeElement = activeElements[0];
         
-        // Smoother scrolling behavior
         activeElement.scrollIntoView({
           behavior: 'smooth',
           block: 'center',
         });
       } else if (cursorPos >= charData.length - 1) {
-        // If we're at the end of the text, scroll to the bottom
         container.scrollTo({
           top: container.scrollHeight,
           behavior: 'smooth'
@@ -283,7 +255,6 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
     }
   };
 
-  // Auto-scroll the typing area to keep the current character in view
   useEffect(() => {
     if (containerRef.current && charData.length > 0) {
       const container = containerRef.current;
@@ -294,7 +265,6 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
         const containerRect = container.getBoundingClientRect();
         const activeRect = activeElement.getBoundingClientRect();
         
-        // Check if the active element is out of view
         if (
           activeRect.top < containerRect.top + 40 || 
           activeRect.bottom > containerRect.bottom - 40
@@ -308,17 +278,86 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, isPlaying, videoTitle, on
     }
   }, [cursorPos]);
 
+  useEffect(() => {
+    if (autoTyping && isPlaying) {
+      const typeNextChar = () => {
+        if (cursorPos >= charData.length) {
+          setAutoTyping(false);
+          return;
+        }
+
+        const currentChar = charData[cursorPos].char;
+        const newCharData = [...charData];
+        newCharData[cursorPos].state = 'correct';
+        
+        if (cursorPos < charData.length - 1) {
+          newCharData[cursorPos + 1].state = 'active';
+        }
+        
+        setCursorPos(prev => prev + 1);
+        setCharData(newCharData);
+        
+        if (startTime === null) {
+          setStartTime(Date.now());
+        }
+        
+        setStats(prev => ({
+          ...prev,
+          correctChars: prev.correctChars + 1,
+          totalChars: prev.totalChars + 1,
+        }));
+
+        updateStats();
+      };
+
+      const delay = 60000 / typingSpeed / 5;
+      autoTypingInterval.current = setInterval(typeNextChar, delay);
+
+      return () => {
+        if (autoTypingInterval.current) {
+          clearInterval(autoTypingInterval.current);
+        }
+      };
+    }
+  }, [autoTyping, isPlaying, cursorPos]);
+
+  useEffect(() => {
+    if (!isPlaying && autoTyping) {
+      setAutoTyping(false);
+    }
+  }, [isPlaying]);
+
+  useEffect(() => {
+    return () => {
+      if (autoTypingInterval.current) {
+        clearInterval(autoTypingInterval.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col items-center">
-      <div className="mb-4 flex justify-center space-x-8">
-        <div className="text-center">
-          <p className="text-musitype-gray text-sm">WPM</p>
-          <p className="text-musitype-primary text-3xl font-mono">{stats.wpm}</p>
+      <div className="w-full flex justify-between items-center mb-4">
+        <div className="flex justify-center space-x-8">
+          <div className="text-center">
+            <p className="text-musitype-gray text-sm">WPM</p>
+            <p className="text-musitype-primary text-3xl font-mono">{stats.wpm}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-musitype-gray text-sm">ACCURACY</p>
+            <p className="text-musitype-primary text-3xl font-mono">{stats.accuracy}%</p>
+          </div>
         </div>
-        <div className="text-center">
-          <p className="text-musitype-gray text-sm">ACCURACY</p>
-          <p className="text-musitype-primary text-3xl font-mono">{stats.accuracy}%</p>
-        </div>
+        
+        <Toggle
+          pressed={autoTyping}
+          onPressedChange={setAutoTyping}
+          disabled={!isPlaying || cursorPos >= charData.length}
+          className="h-8 px-2 text-xs"
+        >
+          {autoTyping ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          <span className="ml-2">Auto-type</span>
+        </Toggle>
       </div>
       
       <div 
